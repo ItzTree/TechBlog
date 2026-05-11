@@ -186,6 +186,45 @@ async function markAsCompleted(pageId) {
   });
 }
 
+async function getDeletedPages() {
+  const dataSourceId = await getDataSourceId();
+  const response = await notion.dataSources.query({
+    data_source_id: dataSourceId,
+    filter: {
+      property: "상태",
+      select: { equals: "삭제" },
+    },
+  });
+  return response.results;
+}
+
+async function deletePage(page) {
+  const props = getPageProperties(page);
+  const filePath = path.join(CONTENT_DIR, `${props.slug}.md`);
+
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+    console.log(`Deleted: ${props.slug}.md`);
+  }
+
+  const imageFiles = fs.existsSync(IMAGE_DIR)
+    ? fs.readdirSync(IMAGE_DIR).filter((f) => f.startsWith(`${props.slug}-`))
+    : [];
+  for (const file of imageFiles) {
+    fs.unlinkSync(path.join(IMAGE_DIR, file));
+    console.log(`Deleted image: ${file}`);
+  }
+}
+
+async function markAsDeleted(pageId) {
+  await notion.pages.update({
+    page_id: pageId,
+    properties: {
+      "상태": { select: { name: "삭제완료" } },
+    },
+  });
+}
+
 async function main() {
   console.log("Fetching published pages from Notion...");
   const pages = await getPublishedPages();
@@ -208,7 +247,16 @@ async function main() {
     synced++;
   }
 
-  console.log(`Sync complete. ${synced} page(s) synced.`);
+  const deletedPages = await getDeletedPages();
+  let deleted = 0;
+  for (const page of deletedPages) {
+    await deletePage(page);
+    await markAsDeleted(page.id);
+    console.log(`  -> Status changed to "삭제완료"`);
+    deleted++;
+  }
+
+  console.log(`Sync complete. ${synced} synced, ${deleted} deleted.`);
 }
 
 main().catch((err) => {

@@ -1,0 +1,27 @@
+{
+  "name": "techblog",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "sync": "node scripts/sync.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ItzTree/TechBlog.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ItzTree/TechBlog/issues"
+  },
+  "homepage": "https://github.com/ItzTree/TechBlog#readme",
+  "dependencies": {
+    "@notionhq/client": "^5.20.0",
+    "dotenv": "^17.4.2",
+    "notion-to-md": "^3.1.9"
+  }
+}

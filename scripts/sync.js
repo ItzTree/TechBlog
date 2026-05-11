@@ -187,15 +187,20 @@ async function markAsCompleted(pageId) {
 }
 
 async function getDeletedPages() {
-  const dataSourceId = await getDataSourceId();
-  const response = await notion.dataSources.query({
-    data_source_id: dataSourceId,
-    filter: {
-      property: "상태",
-      select: { equals: "삭제" },
-    },
-  });
-  return response.results;
+  try {
+    const dataSourceId = await getDataSourceId();
+    const response = await notion.dataSources.query({
+      data_source_id: dataSourceId,
+      filter: {
+        property: "상태",
+        select: { equals: "삭제" },
+      },
+    });
+    return response.results;
+  } catch (err) {
+    console.warn(`Skipping deletion sync: ${err.message}`);
+    return [];
+  }
 }
 
 async function deletePage(page) {

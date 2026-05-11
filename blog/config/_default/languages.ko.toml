@@ -1,0 +1,14 @@
+locale = "ko"
+label = "한국어"
+direction = "ltr"
+weight = 1
+
+title = "TechBlog"
+
+[params]
+  dateFormat = "2006년 1월 2일"
+  mainSections = ["posts"]
+  description = "알고리즘 & 개발 기술 블로그"
+
+[params.author]
+  name = "princ"

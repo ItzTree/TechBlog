@@ -1,0 +1,12 @@
+baseURL = "https://itztree.github.io/TechBlog/"
+theme = "congo"
+defaultContentLanguage = "ko"
+
+enableRobotsTXT = true
+summaryLength = 0
+
+[pagination]
+  pagerSize = 10
+
+[outputs]
+  home = ["HTML", "RSS", "JSON"]

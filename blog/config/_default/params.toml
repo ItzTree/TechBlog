@@ -1,4 +1,4 @@
-colorScheme = "congo"
+colorScheme = "ocean"
 defaultAppearance = "light"
 autoSwitchAppearance = true
 
@@ -35,11 +35,11 @@ fingerprintAlgorithm = "sha256"
   showTableOfContents = false
   showTaxonomies = true
   showWordCount = false
-  showComments = false
+  showComments = true
 
 [list]
   showBreadcrumbs = true
-  showSummary = true
+  showSummary = false
   showTableOfContents = false
   showTaxonomies = true
   groupByYear = true

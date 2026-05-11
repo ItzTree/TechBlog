@@ -90,8 +90,6 @@ async function downloadImage(url, filename) {
   fs.mkdirSync(IMAGE_DIR, { recursive: true });
   const filePath = path.join(IMAGE_DIR, filename);
 
-  if (fs.existsSync(filePath)) return;
-
   return new Promise((resolve, reject) => {
     const get = url.startsWith("https") ? https.get : http.get;
     get(url, (res) => {

@@ -5,7 +5,11 @@
   "main": "index.js",
   "scripts": {
     "sync": "node scripts/sync.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/__tests__/**/*.test.js"]
   },
   "repository": {
     "type": "git",
@@ -23,5 +27,8 @@
     "@notionhq/client": "^5.20.0",
     "dotenv": "^17.4.2",
     "notion-to-md": "^3.1.9"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
   }
 }

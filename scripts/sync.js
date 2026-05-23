@@ -264,7 +264,19 @@ async function main() {
   console.log(`Sync complete. ${synced} synced, ${deleted} deleted.`);
 }
 
-main().catch((err) => {
-  console.error("Sync failed:", err);
-  process.exit(1);
-});
+module.exports = {
+  needsSync,
+  getPageProperties,
+  buildFrontMatter,
+  processImages,
+  syncPage,
+  hasMathContent,
+  convertLineBreaks,
+};
+
+if (require.main === module) {
+  main().catch((err) => {
+    console.error("Sync failed:", err);
+    process.exit(1);
+  });
+}

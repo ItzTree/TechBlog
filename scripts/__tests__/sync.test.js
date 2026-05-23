@@ -142,3 +142,82 @@ describe("deleteOldSlugFiles", () => {
     expect(fs.existsSync(legacyFile)).toBe(true);
   });
 });
+
+describe("processImages returns filenames set", () => {
+  const { processImages } = sync;
+
+  test("filenames Set contains all generated filenames", () => {
+    const md = "![](https://example.invalid/a.png)\n\n![](https://example.invalid/b.jpg)";
+    const result = processImages(md, "post");
+    result.downloads.forEach((p) => p.catch(() => {}));
+    expect(result.filenames).toBeInstanceOf(Set);
+    expect(result.filenames.has("post-0.png")).toBe(true);
+    expect(result.filenames.has("post-1.jpg")).toBe(true);
+    expect(result.filenames.size).toBe(2);
+  });
+
+  test("empty Set when no images", () => {
+    const result = processImages("no images here", "post");
+    expect(result.filenames.size).toBe(0);
+  });
+});
+
+describe("pruneOldImages", () => {
+  const { pruneOldImages } = sync;
+  let imgDir;
+  beforeEach(() => {
+    imgDir = fs.mkdtempSync(path.join(os.tmpdir(), "img-test-"));
+  });
+  afterEach(() => {
+    fs.rmSync(imgDir, { recursive: true, force: true });
+  });
+
+  test("removes images with slug prefix not in keep set", () => {
+    fs.writeFileSync(path.join(imgDir, "foo-0.png"), "a");
+    fs.writeFileSync(path.join(imgDir, "foo-1.png"), "b");
+    fs.writeFileSync(path.join(imgDir, "foo-2.png"), "c");
+
+    pruneOldImages(imgDir, "foo", new Set(["foo-0.png", "foo-1.png"]));
+
+    expect(fs.existsSync(path.join(imgDir, "foo-0.png"))).toBe(true);
+    expect(fs.existsSync(path.join(imgDir, "foo-1.png"))).toBe(true);
+    expect(fs.existsSync(path.join(imgDir, "foo-2.png"))).toBe(false);
+  });
+
+  test("does not touch images of other slugs", () => {
+    fs.writeFileSync(path.join(imgDir, "foo-0.png"), "a");
+    fs.writeFileSync(path.join(imgDir, "bar-0.png"), "b");
+
+    pruneOldImages(imgDir, "foo", new Set());
+
+    expect(fs.existsSync(path.join(imgDir, "bar-0.png"))).toBe(true);
+    expect(fs.existsSync(path.join(imgDir, "foo-0.png"))).toBe(false);
+  });
+
+  test("does not match similarly-named slug prefix (foo vs foo-bar)", () => {
+    fs.writeFileSync(path.join(imgDir, "foo-bar-0.png"), "a");
+    fs.writeFileSync(path.join(imgDir, "foo-0.png"), "b");
+
+    pruneOldImages(imgDir, "foo-bar", new Set());
+
+    // foo-bar-0.png는 삭제, foo-0.png는 (다른 슬러그) 그대로
+    expect(fs.existsSync(path.join(imgDir, "foo-bar-0.png"))).toBe(false);
+    expect(fs.existsSync(path.join(imgDir, "foo-0.png"))).toBe(true);
+  });
+
+  test("does not delete another post's image when slug is a prefix (foo deleting foo-bar-0)", () => {
+    // 슬러그 "foo" 동기화 시, 다른 글 "foo-bar"의 이미지 "foo-bar-0.png"는 건드리면 안 됨
+    fs.writeFileSync(path.join(imgDir, "foo-0.png"), "a");
+    fs.writeFileSync(path.join(imgDir, "foo-bar-0.png"), "b");
+
+    pruneOldImages(imgDir, "foo", new Set(["foo-0.png"]));
+
+    expect(fs.existsSync(path.join(imgDir, "foo-0.png"))).toBe(true);
+    expect(fs.existsSync(path.join(imgDir, "foo-bar-0.png"))).toBe(true);
+  });
+
+  test("noop when image directory does not exist", () => {
+    const fake = path.join(imgDir, "missing");
+    expect(() => pruneOldImages(fake, "foo", new Set())).not.toThrow();
+  });
+});

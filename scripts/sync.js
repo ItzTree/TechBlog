@@ -131,11 +131,13 @@ async function downloadImage(url, filename) {
 function processImages(markdown, slug) {
   let imageIndex = 0;
   const downloads = [];
+  const filenames = new Set();
   const newMarkdown = markdown.replace(
     /!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g,
     (match, alt, url) => {
       const ext = path.extname(new URL(url).pathname) || ".png";
       const filename = `${slug}-${imageIndex++}${ext}`;
+      filenames.add(filename);
       downloads.push(
         downloadImage(url, filename).catch((err) => {
           console.error(`Failed to download image: ${url}`, err.message);
@@ -146,7 +148,20 @@ function processImages(markdown, slug) {
       return `![${alt}](${basePath}/images/${filename})`;
     }
   );
-  return { markdown: newMarkdown, downloads };
+  return { markdown: newMarkdown, downloads, filenames };
+}
+
+function pruneOldImages(imageDir, slug, keepFilenames) {
+  if (!fs.existsSync(imageDir)) return;
+  // 정확히 {slug}-{index}.{ext} 형태만 매칭 ({slug}-bar-0.png 같은 다른 글 파일 보호)
+  const slugEscaped = slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`^${slugEscaped}-\\d+\\.[A-Za-z0-9]+$`);
+  for (const file of fs.readdirSync(imageDir)) {
+    if (!pattern.test(file)) continue;
+    if (keepFilenames.has(file)) continue;
+    fs.unlinkSync(path.join(imageDir, file));
+    console.log(`Pruned old image: ${file}`);
+  }
 }
 
 function convertLineBreaks(markdown) {
@@ -191,6 +206,7 @@ async function syncPage(page) {
   const imageResult = processImages(markdown, props.slug);
   markdown = imageResult.markdown;
   await Promise.all(imageResult.downloads);
+  pruneOldImages(IMAGE_DIR, props.slug, imageResult.filenames);
   markdown = convertLineBreaks(markdown);
 
   const math = hasMathContent(markdown);
@@ -302,6 +318,7 @@ module.exports = {
   hasMathContent,
   convertLineBreaks,
   deleteOldSlugFiles,
+  pruneOldImages,
 };
 
 if (require.main === module) {

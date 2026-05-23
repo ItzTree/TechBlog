@@ -107,8 +107,6 @@ TechBlog/
 │   ├── layouts/                   # 테마 오버라이드 (favicons, comments 등)
 │   └── themes/
 │       └── congo/                 # git submodule
-├── docs/
-│   └── superpowers/plans/         # 작업 plan 문서
 ├── package.json
 ├── PROJECT.md                     # 이 문서
 └── .env                           # NOTION_API_KEY, NOTION_DATABASE_ID (gitignore)
@@ -293,9 +291,3 @@ GitHub Pages 배포는 별도 키 없이 GitHub Actions 기본 `GITHUB_TOKEN`으
 - `BASE_PATH`가 `deploy.yml`과 `sync.js` 두 곳에 하드코딩(`/TechBlog`).
 - 발행일 기본값이 UTC `created_time` → KST 기준으로 하루 차이 가능.
 - sync 실패 시 슬랙/이메일 알림 부재 (Actions 탭 직접 확인 필요).
-
----
-
-## 관련 문서
-
-- 상세 결함 수정 plan: `docs/superpowers/plans/2026-05-23-pipeline-fixes.md`

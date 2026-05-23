@@ -35,13 +35,16 @@ async function getPublishedPages() {
   return response.results;
 }
 
-function needsSync(page) {
+function needsSync(page, contentDir = CONTENT_DIR) {
   const props = getPageProperties(page);
-  const filePath = path.join(CONTENT_DIR, `${props.slug}.md`);
+  const filePath = path.join(contentDir, `${props.slug}.md`);
   if (!fs.existsSync(filePath)) return true;
-  const fileMtime = fs.statSync(filePath).mtime;
+  const content = fs.readFileSync(filePath, "utf-8");
+  const match = content.match(/notion_last_edited:\s*"([^"]+)"/);
+  if (!match) return true; // 레거시 파일(필드 없음) → 강제 재동기화
+  const stored = new Date(match[1]);
   const pageEdited = new Date(page.last_edited_time);
-  return pageEdited > fileMtime;
+  return pageEdited > stored;
 }
 
 function getPageProperties(page) {

@@ -221,3 +221,76 @@ describe("pruneOldImages", () => {
     expect(() => pruneOldImages(fake, "foo", new Set())).not.toThrow();
   });
 });
+
+describe("needsSync via notion_last_edited", () => {
+  const { needsSync } = sync;
+  let dir;
+
+  function makePage(slug, lastEdited) {
+    return {
+      properties: {
+        "제목": { title: [{ plain_text: slug }] },
+        "슬러그": { rich_text: [{ plain_text: slug }] },
+      },
+      last_edited_time: lastEdited,
+      created_time: "2026-05-01T00:00:00.000Z",
+    };
+  }
+
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "ns-test-"));
+  });
+  afterEach(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test("returns true when file does not exist", () => {
+    expect(needsSync(makePage("x", "2026-05-01T00:00:00.000Z"), dir)).toBe(true);
+  });
+
+  test("returns true when notion last_edited > stored notion_last_edited", () => {
+    fs.writeFileSync(
+      path.join(dir, "x.md"),
+      '---\nnotion_last_edited: "2026-05-01T00:00:00.000Z"\nslug: "x"\n---\nbody'
+    );
+    expect(needsSync(makePage("x", "2026-05-02T00:00:00.000Z"), dir)).toBe(true);
+  });
+
+  test("returns false when timestamps equal", () => {
+    fs.writeFileSync(
+      path.join(dir, "x.md"),
+      '---\nnotion_last_edited: "2026-05-02T00:00:00.000Z"\nslug: "x"\n---\nbody'
+    );
+    expect(needsSync(makePage("x", "2026-05-02T00:00:00.000Z"), dir)).toBe(false);
+  });
+
+  test("returns false when notion last_edited < stored", () => {
+    fs.writeFileSync(
+      path.join(dir, "x.md"),
+      '---\nnotion_last_edited: "2026-05-10T00:00:00.000Z"\nslug: "x"\n---\nbody'
+    );
+    expect(needsSync(makePage("x", "2026-05-02T00:00:00.000Z"), dir)).toBe(false);
+  });
+
+  test("returns true when legacy file has no notion_last_edited (force re-sync)", () => {
+    fs.writeFileSync(
+      path.join(dir, "x.md"),
+      '---\ntitle: "x"\nslug: "x"\n---\nbody'
+    );
+    expect(needsSync(makePage("x", "2026-05-02T00:00:00.000Z"), dir)).toBe(true);
+  });
+
+  test("is independent of file mtime (CI checkout simulation)", () => {
+    fs.writeFileSync(
+      path.join(dir, "x.md"),
+      '---\nnotion_last_edited: "2026-05-02T00:00:00.000Z"\nslug: "x"\n---\nbody'
+    );
+    // mtime을 미래로 강제 → 옛 mtime-비교는 false였겠지만 notion_last_edited 비교는 영향 없음
+    const future = new Date("2099-01-01T00:00:00.000Z");
+    fs.utimesSync(path.join(dir, "x.md"), future, future);
+    // 노션 last_edited가 stored와 같으면 sync 불필요
+    expect(needsSync(makePage("x", "2026-05-02T00:00:00.000Z"), dir)).toBe(false);
+    // 노션 last_edited가 더 새로우면 sync 필요 (mtime이 미래여도)
+    expect(needsSync(makePage("x", "2026-05-03T00:00:00.000Z"), dir)).toBe(true);
+  });
+});

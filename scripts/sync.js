@@ -109,18 +109,23 @@ async function downloadImage(url, filename) {
 
 function processImages(markdown, slug) {
   let imageIndex = 0;
-  return markdown.replace(
+  const downloads = [];
+  const newMarkdown = markdown.replace(
     /!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g,
     (match, alt, url) => {
       const ext = path.extname(new URL(url).pathname) || ".png";
       const filename = `${slug}-${imageIndex++}${ext}`;
-      downloadImage(url, filename).catch((err) =>
-        console.error(`Failed to download image: ${url}`, err.message)
+      downloads.push(
+        downloadImage(url, filename).catch((err) => {
+          console.error(`Failed to download image: ${url}`, err.message);
+          throw err;
+        })
       );
       const basePath = process.env.BASE_PATH || "/TechBlog";
       return `![${alt}](${basePath}/images/${filename})`;
     }
   );
+  return { markdown: newMarkdown, downloads };
 }
 
 function convertLineBreaks(markdown) {
@@ -162,7 +167,9 @@ async function syncPage(page) {
   const mdResult = n2m.toMarkdownString(mdBlocks);
   let markdown = typeof mdResult === "string" ? mdResult : mdResult.parent || "";
 
-  markdown = processImages(markdown, props.slug);
+  const imageResult = processImages(markdown, props.slug);
+  markdown = imageResult.markdown;
+  await Promise.all(imageResult.downloads);
   markdown = convertLineBreaks(markdown);
 
   const math = hasMathContent(markdown);

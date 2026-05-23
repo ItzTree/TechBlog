@@ -289,38 +289,67 @@ async function markAsDeleted(pageId) {
   });
 }
 
+async function processPagesIsolated(pages, processOne) {
+  const failures = [];
+  let processed = 0;
+  for (const page of pages) {
+    const id = page?.id || "unknown";
+    const title =
+      page?.properties?.["제목"]?.title?.map((t) => t.plain_text).join("") || "";
+    try {
+      const result = await processOne(page);
+      if (result) processed++;
+    } catch (err) {
+      failures.push({ id, title, error: err.message });
+      console.error(`Failed page ${id} (${title}): ${err.message}`);
+    }
+  }
+  return { processed, failures };
+}
+
 async function main() {
   console.log("Fetching published pages from Notion...");
   const pages = await getPublishedPages();
   console.log(`Found ${pages.length} published/completed page(s).`);
 
-  let synced = 0;
-  for (const page of pages) {
-    const isNew = page.properties["상태"]?.select?.name === "발행";
-    const isModified = !isNew && needsSync(page);
+  const { processed: synced, failures: syncFailures } = await processPagesIsolated(
+    pages,
+    async (page) => {
+      const isNew = page.properties["상태"]?.select?.name === "발행";
+      const isModified = !isNew && needsSync(page);
+      if (!isNew && !isModified) return false;
 
-    if (!isNew && !isModified) continue;
-
-    await syncPage(page);
-    if (isNew) {
-      await markAsCompleted(page.id);
-      console.log(`  -> Status changed to "발행완료"`);
-    } else {
-      console.log(`  -> Re-synced (content modified)`);
+      await syncPage(page);
+      if (isNew) {
+        await markAsCompleted(page.id);
+        console.log(`  -> Status changed to "발행완료"`);
+      } else {
+        console.log(`  -> Re-synced (content modified)`);
+      }
+      return true;
     }
-    synced++;
-  }
+  );
 
   const deletedPages = await getDeletedPages();
-  let deleted = 0;
-  for (const page of deletedPages) {
-    await deletePage(page);
-    await markAsDeleted(page.id);
-    console.log(`  -> Status changed to "삭제완료"`);
-    deleted++;
-  }
+  const { processed: deleted, failures: deleteFailures } = await processPagesIsolated(
+    deletedPages,
+    async (page) => {
+      await deletePage(page);
+      await markAsDeleted(page.id);
+      console.log(`  -> Status changed to "삭제완료"`);
+      return true;
+    }
+  );
 
+  const allFailures = [...syncFailures, ...deleteFailures];
   console.log(`Sync complete. ${synced} synced, ${deleted} deleted.`);
+  if (allFailures.length > 0) {
+    console.error(`\n=== ${allFailures.length} failure(s) ===`);
+    for (const f of allFailures) {
+      console.error(`  - ${f.id} (${f.title}): ${f.error}`);
+    }
+    process.exitCode = 1;
+  }
 }
 
 module.exports = {
@@ -334,6 +363,7 @@ module.exports = {
   deleteOldSlugFiles,
   pruneOldImages,
   queryAllPages,
+  processPagesIsolated,
 };
 
 if (require.main === module) {

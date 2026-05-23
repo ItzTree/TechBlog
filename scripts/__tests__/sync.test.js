@@ -13,6 +13,81 @@ describe("sync module exports", () => {
     expect(typeof sync.hasMathContent).toBe("function");
     expect(typeof sync.convertLineBreaks).toBe("function");
     expect(typeof sync.queryAllPages).toBe("function");
+    expect(typeof sync.processPagesIsolated).toBe("function");
+  });
+});
+
+describe("processPagesIsolated error isolation", () => {
+  const { processPagesIsolated } = sync;
+
+  function makePage(id, titleText = "") {
+    return {
+      id,
+      properties: { "제목": { title: [{ plain_text: titleText }] } },
+    };
+  }
+
+  let consoleErrorSpy;
+  beforeEach(() => {
+    consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
+  });
+
+  test("a failure in one page does not stop later pages", async () => {
+    const pages = [makePage("p1"), makePage("p2"), makePage("p3")];
+    const calls = [];
+    const processOne = jest.fn(async (page) => {
+      calls.push(page.id);
+      if (page.id === "p2") throw new Error("boom");
+      return true;
+    });
+
+    const { processed, failures } = await processPagesIsolated(pages, processOne);
+
+    expect(calls).toEqual(["p1", "p2", "p3"]);
+    expect(processed).toBe(2);
+    expect(failures).toHaveLength(1);
+    expect(failures[0].id).toBe("p2");
+    expect(failures[0].error).toBe("boom");
+  });
+
+  test("falsy return is treated as skipped (not counted, not failed)", async () => {
+    const pages = [makePage("p1"), makePage("p2")];
+    const processOne = jest.fn(async (page) => {
+      if (page.id === "p1") return false;
+      return true;
+    });
+
+    const { processed, failures } = await processPagesIsolated(pages, processOne);
+
+    expect(processed).toBe(1);
+    expect(failures).toHaveLength(0);
+  });
+
+  test("collects title from page properties for failure log", async () => {
+    const pages = [makePage("p1", "Hello World")];
+    const processOne = async () => { throw new Error("nope"); };
+
+    const { failures } = await processPagesIsolated(pages, processOne);
+
+    expect(failures[0].title).toBe("Hello World");
+    expect(failures[0].id).toBe("p1");
+  });
+
+  test("returns empty failures when all pages succeed", async () => {
+    const pages = [makePage("p1"), makePage("p2")];
+    const processOne = async () => true;
+    const { processed, failures } = await processPagesIsolated(pages, processOne);
+    expect(processed).toBe(2);
+    expect(failures).toEqual([]);
+  });
+
+  test("handles empty pages array", async () => {
+    const { processed, failures } = await processPagesIsolated([], async () => true);
+    expect(processed).toBe(0);
+    expect(failures).toEqual([]);
   });
 });
 

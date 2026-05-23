@@ -28,13 +28,13 @@
 
 | GitHub Issue | 내용 | PR | 비고 |
 |--------------|------|-----|------|
-| #1 | 슬러그 변경 → 옛 파일 고아화 | PR-A | notion_id 추적 추가 |
-| #2 | 이미지 인덱스 변경 → 옛 이미지 고아화 | PR-B | 사용 중 이미지 외 prune |
-| #3 | downloadImage await 누락 | PR-C | #4와 묶여서 한 PR |
-| #4 | 다운로드 실패가 sync 성공으로 보고됨 | PR-C | #3 fix의 부산물 |
-| #5 | mtime 비교 → checkout이 mtime 리셋 | PR-D | #6과 묶여서 한 PR |
-| #6 | "발행완료" 글이 cron에서 재동기화 안 됨 | PR-D | #5 fix의 결과 |
-| #7 | sync push가 워크플로 재트리거 가능성 | PR-E | 우선 조사 후 결정 |
+| #2 | 슬러그 변경 → 옛 파일 고아화 | PR-A | notion_id 추적 추가 |
+| #3 | 이미지 인덱스 변경 → 옛 이미지 고아화 | PR-B | 사용 중 이미지 외 prune |
+| #4 | downloadImage await 누락 | PR-C | #5와 묶여서 한 PR |
+| #5 | 다운로드 실패가 sync 성공으로 보고됨 | PR-C | #4 fix의 부산물 |
+| #6 | mtime 비교 → checkout이 mtime 리셋 | PR-D | #7과 묶여서 한 PR |
+| #7 | "발행완료" 글이 cron에서 재동기화 안 됨 | PR-D | #6 fix의 결과 |
+| #8 | sync push가 워크플로 재트리거 가능성 | PR-E | 우선 조사 후 결정 |
 
 총 5개 PR. 순서: PR-C(이미지 await) → PR-A(slug) → PR-B(이미지 prune) → PR-D(mtime) → PR-E(push 조사).
 **PR-C를 먼저 하는 이유:** PR-B(이미지 prune)가 동작하려면 다운로드가 동기여야 함.

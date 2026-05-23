@@ -122,24 +122,73 @@ function deleteOldSlugFiles(contentDir, notionId, currentSlug) {
   }
 }
 
-async function downloadImage(url, filename) {
-  fs.mkdirSync(IMAGE_DIR, { recursive: true });
-  const filePath = path.join(IMAGE_DIR, filename);
+async function downloadImage(url, filename, opts = {}) {
+  const {
+    redirectsLeft = 5,
+    timeoutMs = 30_000,
+    maxBytes = 20 * 1024 * 1024,
+    imageDir = IMAGE_DIR,
+  } = opts;
+
+  fs.mkdirSync(imageDir, { recursive: true });
+  const filePath = path.join(imageDir, filename);
 
   return new Promise((resolve, reject) => {
     const get = url.startsWith("https") ? https.get : http.get;
-    get(url, (res) => {
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        downloadImage(res.headers.location, filename).then(resolve).catch(reject);
+    let settled = false;
+    const finish = (err) => {
+      if (settled) return;
+      settled = true;
+      if (err) reject(err); else resolve();
+    };
+
+    const req = get(url, (res) => {
+      const isRedirect =
+        res.statusCode >= 300 && res.statusCode < 400 && res.headers.location;
+      if (isRedirect) {
+        res.resume();
+        if (redirectsLeft <= 0) {
+          finish(new Error(`Too many redirects for ${url}`));
+          return;
+        }
+        downloadImage(res.headers.location, filename, {
+          ...opts,
+          redirectsLeft: redirectsLeft - 1,
+        }).then(() => finish(), finish);
         return;
       }
+      if (res.statusCode !== 200) {
+        res.resume();
+        finish(new Error(`HTTP ${res.statusCode} for ${url}`));
+        return;
+      }
+      const declaredLen = parseInt(res.headers["content-length"] || "0", 10);
+      if (declaredLen > maxBytes) {
+        res.resume();
+        finish(new Error(`Image too large: ${declaredLen} bytes (max ${maxBytes})`));
+        return;
+      }
+
+      let received = 0;
       const stream = fs.createWriteStream(filePath);
-      res.pipe(stream);
-      stream.on("finish", () => {
-        stream.close();
-        resolve();
+      res.on("data", (chunk) => {
+        if (settled) return;
+        received += chunk.length;
+        if (received > maxBytes) {
+          res.destroy();
+          stream.destroy();
+          fs.unlink(filePath, () => {});
+          finish(new Error(`Image exceeded ${maxBytes} bytes mid-stream`));
+        }
       });
-    }).on("error", reject);
+      res.pipe(stream);
+      stream.on("finish", () => finish());
+      stream.on("error", finish);
+    });
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`Timeout after ${timeoutMs}ms: ${url}`));
+    });
+    req.on("error", finish);
   });
 }
 
@@ -364,6 +413,7 @@ module.exports = {
   pruneOldImages,
   queryAllPages,
   processPagesIsolated,
+  downloadImage,
 };
 
 if (require.main === module) {

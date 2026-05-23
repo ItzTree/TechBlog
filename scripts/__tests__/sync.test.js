@@ -1,6 +1,7 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const http = require("http");
 const sync = require("../sync");
 
 describe("sync module exports", () => {
@@ -14,6 +15,132 @@ describe("sync module exports", () => {
     expect(typeof sync.convertLineBreaks).toBe("function");
     expect(typeof sync.queryAllPages).toBe("function");
     expect(typeof sync.processPagesIsolated).toBe("function");
+    expect(typeof sync.downloadImage).toBe("function");
+  });
+});
+
+describe("downloadImage safety", () => {
+  const { downloadImage } = sync;
+  let imgDir;
+  let servers;
+
+  function startServer(handler) {
+    return new Promise((resolve) => {
+      const server = http.createServer(handler);
+      server.listen(0, "127.0.0.1", () => {
+        servers.push(server);
+        resolve(server.address().port);
+      });
+    });
+  }
+
+  beforeEach(() => {
+    imgDir = fs.mkdtempSync(path.join(os.tmpdir(), "dl-test-"));
+    servers = [];
+  });
+
+  afterEach(async () => {
+    await Promise.all(
+      servers.map((s) => new Promise((r) => s.close(r)))
+    );
+    fs.rmSync(imgDir, { recursive: true, force: true });
+  });
+
+  test("rejects on connection refused (unreachable URL) — fast path", async () => {
+    await expect(
+      downloadImage("http://127.0.0.1:1/x.png", "x.png", { imageDir: imgDir, timeoutMs: 500 })
+    ).rejects.toBeDefined();
+  });
+
+  test("rejects on timeout when server never responds", async () => {
+    const port = await startServer(() => {
+      // never write response
+    });
+    await expect(
+      downloadImage(`http://127.0.0.1:${port}/x.png`, "x.png", {
+        imageDir: imgDir,
+        timeoutMs: 100,
+      })
+    ).rejects.toThrow(/Timeout/);
+  });
+
+  test("rejects when redirect chain exceeds redirectsLeft", async () => {
+    const port = await startServer((req, res) => {
+      res.writeHead(302, { location: `http://127.0.0.1:${port}/loop` });
+      res.end();
+    });
+    await expect(
+      downloadImage(`http://127.0.0.1:${port}/start`, "x.png", {
+        imageDir: imgDir,
+        redirectsLeft: 2,
+        timeoutMs: 2000,
+      })
+    ).rejects.toThrow(/Too many redirects/);
+  });
+
+  test("follows redirects within limit and saves the final image", async () => {
+    let port;
+    port = await startServer((req, res) => {
+      if (req.url === "/start") {
+        res.writeHead(302, { location: `http://127.0.0.1:${port}/final` });
+        res.end();
+        return;
+      }
+      const body = Buffer.from("PNGDATA");
+      res.writeHead(200, { "content-length": body.length });
+      res.end(body);
+    });
+
+    await downloadImage(`http://127.0.0.1:${port}/start`, "ok.png", {
+      imageDir: imgDir,
+      redirectsLeft: 3,
+      timeoutMs: 2000,
+    });
+    const saved = fs.readFileSync(path.join(imgDir, "ok.png"));
+    expect(saved.toString()).toBe("PNGDATA");
+  });
+
+  test("rejects when content-length exceeds maxBytes", async () => {
+    const port = await startServer((req, res) => {
+      res.writeHead(200, { "content-length": "999999" });
+      res.end();
+    });
+    await expect(
+      downloadImage(`http://127.0.0.1:${port}/big.png`, "big.png", {
+        imageDir: imgDir,
+        maxBytes: 100,
+        timeoutMs: 2000,
+      })
+    ).rejects.toThrow(/too large/);
+  });
+
+  test("rejects mid-stream when received bytes exceed maxBytes (no content-length)", async () => {
+    const port = await startServer((req, res) => {
+      res.writeHead(200); // omit content-length
+      res.write(Buffer.alloc(80));
+      res.write(Buffer.alloc(80));
+      res.end();
+    });
+    await expect(
+      downloadImage(`http://127.0.0.1:${port}/stream.png`, "stream.png", {
+        imageDir: imgDir,
+        maxBytes: 100,
+        timeoutMs: 2000,
+      })
+    ).rejects.toThrow(/exceeded/);
+  });
+
+  test("rejects on non-200/non-redirect HTTP status", async () => {
+    const port = await startServer((req, res) => {
+      res.writeHead(404);
+      res.end();
+    });
+    await expect(
+      downloadImage(`http://127.0.0.1:${port}/missing.png`, "missing.png", {
+        imageDir: imgDir,
+        timeoutMs: 2000,
+      })
+    ).rejects.toThrow(/HTTP 404/);
   });
 });
 

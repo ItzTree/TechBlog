@@ -5,6 +5,8 @@ tags: ["AtCoder", "ABC", "문자열"]
 categories: ["PS"]
 slug: "ABC-458-C"
 math: true
+notion_id: "3685c3d8-6808-802b-821f-c44d4c598c5c"
+notion_last_edited: "2026-05-22T11:21:00.000Z"
 draft: false
 ---
 

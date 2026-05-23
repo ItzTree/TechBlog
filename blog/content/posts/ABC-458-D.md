@@ -5,6 +5,8 @@ tags: ["AtCoder", "ABC", "우선순위큐"]
 categories: ["PS"]
 slug: "ABC-458-D"
 math: true
+notion_id: "3685c3d8-6808-80e4-bd6a-e8f9b9f53a1f"
+notion_last_edited: "2026-05-23T01:28:00.000Z"
 draft: false
 ---
 

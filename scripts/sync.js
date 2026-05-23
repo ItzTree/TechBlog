@@ -67,7 +67,7 @@ function getPageProperties(page) {
   return { title, date, tags, category, slug };
 }
 
-function buildFrontMatter(props, hasMath) {
+function buildFrontMatter(props, hasMath, notionId, notionLastEdited) {
   const lines = ["---"];
   lines.push(`title: "${props.title.replace(/"/g, '\\"')}"`);
   lines.push(`date: ${props.date}`);
@@ -81,9 +81,30 @@ function buildFrontMatter(props, hasMath) {
   if (hasMath) {
     lines.push("math: true");
   }
+  if (notionId) {
+    lines.push(`notion_id: "${notionId}"`);
+  }
+  if (notionLastEdited) {
+    lines.push(`notion_last_edited: "${notionLastEdited}"`);
+  }
   lines.push("draft: false");
   lines.push("---");
   return lines.join("\n");
+}
+
+function deleteOldSlugFiles(contentDir, notionId, currentSlug) {
+  if (!fs.existsSync(contentDir)) return;
+  const files = fs.readdirSync(contentDir).filter((f) => f.endsWith(".md"));
+  for (const file of files) {
+    if (file === `${currentSlug}.md`) continue;
+    const filePath = path.join(contentDir, file);
+    const content = fs.readFileSync(filePath, "utf-8");
+    const match = content.match(/notion_id:\s*"([^"]+)"/);
+    if (match && match[1] === notionId) {
+      fs.unlinkSync(filePath);
+      console.log(`Deleted old-slug file: ${file}`);
+    }
+  }
 }
 
 async function downloadImage(url, filename) {
@@ -173,12 +194,13 @@ async function syncPage(page) {
   markdown = convertLineBreaks(markdown);
 
   const math = hasMathContent(markdown);
-  const frontMatter = buildFrontMatter(props, math);
+  const frontMatter = buildFrontMatter(props, math, page.id, page.last_edited_time);
   const content = `${frontMatter}\n\n${markdown}`;
 
   fs.mkdirSync(CONTENT_DIR, { recursive: true });
   const filePath = path.join(CONTENT_DIR, `${props.slug}.md`);
   fs.writeFileSync(filePath, content, "utf-8");
+  deleteOldSlugFiles(CONTENT_DIR, page.id, props.slug);
 
   console.log(`Synced: ${props.title} -> ${props.slug}.md`);
   return page.id;
@@ -279,6 +301,7 @@ module.exports = {
   syncPage,
   hasMathContent,
   convertLineBreaks,
+  deleteOldSlugFiles,
 };
 
 if (require.main === module) {

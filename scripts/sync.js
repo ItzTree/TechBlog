@@ -20,9 +20,22 @@ async function getDataSourceId() {
   return db.data_sources[0].id;
 }
 
+async function queryAllPages(query, queryFn) {
+  const exec = queryFn || ((q) => notion.dataSources.query(q));
+  const results = [];
+  let cursor;
+  do {
+    const params = cursor ? { ...query, start_cursor: cursor } : query;
+    const res = await exec(params);
+    results.push(...res.results);
+    cursor = res.has_more ? res.next_cursor : null;
+  } while (cursor);
+  return results;
+}
+
 async function getPublishedPages() {
   const dataSourceId = await getDataSourceId();
-  const response = await notion.dataSources.query({
+  return queryAllPages({
     data_source_id: dataSourceId,
     filter: {
       or: [
@@ -32,7 +45,6 @@ async function getPublishedPages() {
     },
     sorts: [{ property: "발행일", direction: "descending" }],
   });
-  return response.results;
 }
 
 function needsSync(page, contentDir = CONTENT_DIR) {
@@ -237,14 +249,13 @@ async function markAsCompleted(pageId) {
 async function getDeletedPages() {
   try {
     const dataSourceId = await getDataSourceId();
-    const response = await notion.dataSources.query({
+    return await queryAllPages({
       data_source_id: dataSourceId,
       filter: {
         property: "상태",
         select: { equals: "삭제" },
       },
     });
-    return response.results;
   } catch (err) {
     console.warn(`Skipping deletion sync: ${err.message}`);
     return [];
@@ -322,6 +333,7 @@ module.exports = {
   convertLineBreaks,
   deleteOldSlugFiles,
   pruneOldImages,
+  queryAllPages,
 };
 
 if (require.main === module) {

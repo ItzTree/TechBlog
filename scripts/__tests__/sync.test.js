@@ -12,6 +12,67 @@ describe("sync module exports", () => {
     expect(typeof sync.syncPage).toBe("function");
     expect(typeof sync.hasMathContent).toBe("function");
     expect(typeof sync.convertLineBreaks).toBe("function");
+    expect(typeof sync.queryAllPages).toBe("function");
+  });
+});
+
+describe("queryAllPages pagination", () => {
+  const { queryAllPages } = sync;
+
+  test("returns first page when has_more is false", async () => {
+    const queryFn = jest.fn().mockResolvedValue({
+      has_more: false,
+      results: [{ id: "p1" }, { id: "p2" }],
+    });
+    const result = await queryAllPages({ data_source_id: "ds" }, queryFn);
+    expect(result).toEqual([{ id: "p1" }, { id: "p2" }]);
+    expect(queryFn).toHaveBeenCalledTimes(1);
+  });
+
+  test("follows next_cursor across multiple pages and concatenates", async () => {
+    const queryFn = jest
+      .fn()
+      .mockResolvedValueOnce({
+        has_more: true,
+        next_cursor: "c1",
+        results: [{ id: "p1" }, { id: "p2" }],
+      })
+      .mockResolvedValueOnce({
+        has_more: true,
+        next_cursor: "c2",
+        results: [{ id: "p3" }],
+      })
+      .mockResolvedValueOnce({
+        has_more: false,
+        results: [{ id: "p4" }],
+      });
+    const result = await queryAllPages({ data_source_id: "ds", filter: {} }, queryFn);
+    expect(result.map((p) => p.id)).toEqual(["p1", "p2", "p3", "p4"]);
+    expect(queryFn).toHaveBeenCalledTimes(3);
+  });
+
+  test("first call has no start_cursor; subsequent calls pass it", async () => {
+    const queryFn = jest
+      .fn()
+      .mockResolvedValueOnce({ has_more: true, next_cursor: "c1", results: [] })
+      .mockResolvedValueOnce({ has_more: false, results: [] });
+    await queryAllPages({ data_source_id: "ds", filter: { foo: "bar" } }, queryFn);
+    expect(queryFn.mock.calls[0][0]).not.toHaveProperty("start_cursor");
+    expect(queryFn.mock.calls[0][0].filter).toEqual({ foo: "bar" });
+    expect(queryFn.mock.calls[1][0].start_cursor).toBe("c1");
+    expect(queryFn.mock.calls[1][0].filter).toEqual({ foo: "bar" });
+  });
+
+  test("returns empty array when first page has no results and not more", async () => {
+    const queryFn = jest.fn().mockResolvedValue({ has_more: false, results: [] });
+    const result = await queryAllPages({ data_source_id: "ds" }, queryFn);
+    expect(result).toEqual([]);
+    expect(queryFn).toHaveBeenCalledTimes(1);
+  });
+
+  test("propagates errors from queryFn", async () => {
+    const queryFn = jest.fn().mockRejectedValue(new Error("notion down"));
+    await expect(queryAllPages({}, queryFn)).rejects.toThrow("notion down");
   });
 });
 

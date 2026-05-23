@@ -1,6 +1,25 @@
 # Notion → Hugo 파이프라인 Critical/High 결함 수정 Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans (또는 superpowers:subagent-driven-development) to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Status: ✅ COMPLETED (2026-05-23)** — 7개 이슈 모두 종결, 26개 단위테스트 통과.
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans (또는 superpowers:subagent-driven-development) to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
+
+## 실행 결과
+
+| GitHub Issue | PR | 결과 |
+|---|---|---|
+| chore: Jest 인프라 | #1 | merged |
+| #2 슬러그 변경 → 옛 파일 고아화 | #10 | merged ✅ |
+| #3 이미지 인덱스 변경 → 옛 이미지 고아화 | #11 | merged ✅ |
+| #4 이미지 다운로드 await 누락 | #9 | merged ✅ |
+| #5 다운로드 실패가 sync 성공으로 보고 | #9 | merged ✅ |
+| #6 mtime 비교 → checkout이 리셋 | #12 | merged ✅ |
+| #7 "발행완료" 글이 cron에서 재동기화 안 됨 | #12 | merged ✅ |
+| #8 sync push가 워크플로 재트리거 가능성 | — | won't-fix (GITHUB_TOKEN 정책으로 검증) |
+
+총 5개 fix-PR + 1 chore PR 머지. main에서 Jest 26 tests 통과.
+
+---
 
 **Goal:** 파이프라인 분석에서 도출된 Critical(#1–#4) + High(#5–#7) 7개 결함을 GitHub 이슈로 등록하고, 각 이슈를 별도 브랜치/PR로 해결한다. 모든 수정은 Jest 단위 테스트로 회귀 방지를 보장한다.
 
@@ -49,13 +68,13 @@
 - Modify: `scripts/sync.js` (export 추가)
 - Modify: `.gitignore` (coverage/)
 
-- [ ] **Step 1: Jest devDep 설치**
+- [x] **Step 1: Jest devDep 설치**
 
 ```bash
 cd C:/Users/princ/Desktop/Coding/TechBlog && npm install --save-dev jest@^29
 ```
 
-- [ ] **Step 2: package.json 수정**
+- [x] **Step 2: package.json 수정**
 
 `"scripts"` 섹션에서 `test` 변경:
 
@@ -75,7 +94,7 @@ cd C:/Users/princ/Desktop/Coding/TechBlog && npm install --save-dev jest@^29
 }
 ```
 
-- [ ] **Step 3: sync.js에 module.exports 추가**
+- [x] **Step 3: sync.js에 module.exports 추가**
 
 `main()` 호출 위에 가드 추가:
 
@@ -100,7 +119,7 @@ if (require.main === module) {
 
 기존 `main().catch(...)` 줄은 위 블록으로 대체.
 
-- [ ] **Step 4: smoke test 작성**
+- [x] **Step 4: smoke test 작성**
 
 `scripts/__tests__/sync.test.js`:
 
@@ -116,7 +135,7 @@ describe("sync module exports", () => {
 });
 ```
 
-- [ ] **Step 5: 테스트 실행**
+- [x] **Step 5: 테스트 실행**
 
 ```bash
 cd C:/Users/princ/Desktop/Coding/TechBlog && npm test
@@ -124,13 +143,13 @@ cd C:/Users/princ/Desktop/Coding/TechBlog && npm test
 
 Expected: 1 passed (smoke test).
 
-- [ ] **Step 6: .gitignore에 coverage/ 추가**
+- [x] **Step 6: .gitignore에 coverage/ 추가**
 
 ```
 coverage/
 ```
 
-- [ ] **Step 7: 커밋 (별도 브랜치)**
+- [x] **Step 7: 커밋 (별도 브랜치)**
 
 ```bash
 git checkout -b chore/jest-setup
@@ -146,7 +165,7 @@ PR 머지 후 다음 task로 진행.
 
 ## Task 1: GitHub 이슈 7개 등록
 
-- [ ] **Step 1: 라벨 생성**
+- [x] **Step 1: 라벨 생성**
 
 ```bash
 gh label create bug --color d73a4a --description "버그" --force
@@ -154,7 +173,7 @@ gh label create critical --color b60205 --description "Critical: 데이터 손�
 gh label create high --color e99695 --description "High: 논리적 결함" --force
 ```
 
-- [ ] **Step 2: 이슈 7개 등록 (gh issue create)**
+- [x] **Step 2: 이슈 7개 등록 (gh issue create)**
 
 본문은 각각 다음 형식:
 - 증상 (어떤 상황에서 어떤 문제가 보이나)
@@ -163,7 +182,7 @@ gh label create high --color e99695 --description "High: 논리적 결함" --for
 
 각 이슈 등록 후 발급된 번호를 메모. 이후 PR에서 `Closes #N` 으로 참조.
 
-- [ ] **Step 3: 이슈 번호 표 작성**
+- [x] **Step 3: 이슈 번호 표 작성**
 
 이슈 등록 후 plan 하단 "이슈 ↔ PR 매핑" 표에 실제 GitHub 이슈 번호 채워넣기.
 
@@ -177,7 +196,7 @@ gh label create high --color e99695 --description "High: 논리적 결함" --for
 
 **Branch:** `fix/image-download-await`
 
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [x] **Step 1: 실패하는 테스트 작성**
 
 `scripts/__tests__/sync.test.js`에 추가:
 
@@ -206,7 +225,7 @@ describe("processImages", () => {
 });
 ```
 
-- [ ] **Step 2: 테스트 실행 — 실패 확인**
+- [x] **Step 2: 테스트 실행 — 실패 확인**
 
 ```bash
 npm test
@@ -214,7 +233,7 @@ npm test
 
 Expected: FAIL (processImages가 string을 반환).
 
-- [ ] **Step 3: processImages 리팩토링**
+- [x] **Step 3: processImages 리팩토링**
 
 ```javascript
 function processImages(markdown, slug) {
@@ -239,7 +258,7 @@ function processImages(markdown, slug) {
 }
 ```
 
-- [ ] **Step 4: syncPage 수정 — await all downloads**
+- [x] **Step 4: syncPage 수정 — await all downloads**
 
 기존 라인:
 
@@ -257,7 +276,7 @@ await Promise.all(imageResult.downloads);
 
 `syncPage`가 이미 async이므로 await 사용 가능.
 
-- [ ] **Step 5: 테스트 실행 — 통과 확인**
+- [x] **Step 5: 테스트 실행 — 통과 확인**
 
 ```bash
 npm test
@@ -265,7 +284,7 @@ npm test
 
 Expected: 모든 테스트 PASS.
 
-- [ ] **Step 6: 다운로드 실패 시 sync 실패로 보고되는지 테스트 추가**
+- [x] **Step 6: 다운로드 실패 시 sync 실패로 보고되는지 테스트 추가**
 
 ```javascript
 test("processImages download rejection propagates", async () => {
@@ -275,7 +294,7 @@ test("processImages download rejection propagates", async () => {
 });
 ```
 
-- [ ] **Step 7: 커밋 & PR**
+- [x] **Step 7: 커밋 & PR**
 
 ```bash
 git checkout -b fix/image-download-await
@@ -297,7 +316,7 @@ gh pr create --title "fix: 이미지 다운로드 완료 보장" --body "...clos
 
 **Branch:** `fix/slug-orphan-cleanup`
 
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [x] **Step 1: 실패하는 테스트 작성**
 
 ```javascript
 const os = require("os");
@@ -337,11 +356,11 @@ describe("syncPage slug change cleanup", () => {
 });
 ```
 
-- [ ] **Step 2: 테스트 실행 — 실패 확인**
+- [x] **Step 2: 테스트 실행 — 실패 확인**
 
 Expected: FAIL (buildFrontMatter signature 불일치, deleteOldSlugFiles 미정의).
 
-- [ ] **Step 3: buildFrontMatter에 notion_id, notion_last_edited 추가**
+- [x] **Step 3: buildFrontMatter에 notion_id, notion_last_edited 추가**
 
 ```javascript
 function buildFrontMatter(props, hasMath, notionId, lastEdited) {
@@ -364,7 +383,7 @@ function buildFrontMatter(props, hasMath, notionId, lastEdited) {
 }
 ```
 
-- [ ] **Step 4: deleteOldSlugFiles 추가**
+- [x] **Step 4: deleteOldSlugFiles 추가**
 
 ```javascript
 function deleteOldSlugFiles(contentDir, notionId, currentSlug) {
@@ -382,7 +401,7 @@ function deleteOldSlugFiles(contentDir, notionId, currentSlug) {
 }
 ```
 
-- [ ] **Step 5: syncPage 수정 — 호출 추가 및 인자 전달**
+- [x] **Step 5: syncPage 수정 — 호출 추가 및 인자 전달**
 
 ```javascript
 const frontMatter = buildFrontMatter(props, math, page.id, page.last_edited_time);
@@ -392,7 +411,7 @@ deleteOldSlugFiles(CONTENT_DIR, page.id, props.slug);
 
 deleteOldSlugFiles는 export에도 추가.
 
-- [ ] **Step 6: 테스트 실행 — 통과 확인**
+- [x] **Step 6: 테스트 실행 — 통과 확인**
 
 ```bash
 npm test
@@ -400,7 +419,7 @@ npm test
 
 Expected: PASS.
 
-- [ ] **Step 7: 커밋 & PR**
+- [x] **Step 7: 커밋 & PR**
 
 ```bash
 git checkout -b fix/slug-orphan-cleanup
@@ -422,7 +441,7 @@ gh pr create ...
 
 **Branch:** `fix/image-orphan-cleanup`
 
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [x] **Step 1: 실패하는 테스트 작성**
 
 ```javascript
 describe("pruneOldImages", () => {
@@ -451,9 +470,9 @@ describe("pruneOldImages", () => {
 });
 ```
 
-- [ ] **Step 2: 테스트 실행 — 실패 확인**
+- [x] **Step 2: 테스트 실행 — 실패 확인**
 
-- [ ] **Step 3: pruneOldImages 구현**
+- [x] **Step 3: pruneOldImages 구현**
 
 ```javascript
 function pruneOldImages(imageDir, slug, keepFilenames) {
@@ -468,7 +487,7 @@ function pruneOldImages(imageDir, slug, keepFilenames) {
 }
 ```
 
-- [ ] **Step 4: processImages가 사용한 파일명 집합 반환하도록 확장**
+- [x] **Step 4: processImages가 사용한 파일명 집합 반환하도록 확장**
 
 ```javascript
 function processImages(markdown, slug) {
@@ -481,7 +500,7 @@ function processImages(markdown, slug) {
 }
 ```
 
-- [ ] **Step 5: syncPage에서 prune 호출**
+- [x] **Step 5: syncPage에서 prune 호출**
 
 ```javascript
 const imageResult = processImages(markdown, props.slug);
@@ -490,9 +509,9 @@ await Promise.all(imageResult.downloads);
 pruneOldImages(IMAGE_DIR, props.slug, imageResult.filenames);
 ```
 
-- [ ] **Step 6: 테스트 실행 — 통과 확인**
+- [x] **Step 6: 테스트 실행 — 통과 확인**
 
-- [ ] **Step 7: 커밋 & PR**
+- [x] **Step 7: 커밋 & PR**
 
 ---
 
@@ -504,7 +523,7 @@ pruneOldImages(IMAGE_DIR, props.slug, imageResult.filenames);
 
 **Branch:** `fix/sync-judgement-via-front-matter`
 
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [x] **Step 1: 실패하는 테스트 작성**
 
 ```javascript
 describe("needsSync via notion_last_edited", () => {
@@ -552,9 +571,9 @@ describe("needsSync via notion_last_edited", () => {
 });
 ```
 
-- [ ] **Step 2: 테스트 실행 — 실패 확인**
+- [x] **Step 2: 테스트 실행 — 실패 확인**
 
-- [ ] **Step 3: needsSync 변경 (contentDir 인자 추가, front matter 파싱)**
+- [x] **Step 3: needsSync 변경 (contentDir 인자 추가, front matter 파싱)**
 
 ```javascript
 function needsSync(page, contentDir = CONTENT_DIR) {
@@ -570,19 +589,19 @@ function needsSync(page, contentDir = CONTENT_DIR) {
 }
 ```
 
-- [ ] **Step 4: main()의 호출부 변경 없음 확인**
+- [x] **Step 4: main()의 호출부 변경 없음 확인**
 
 `needsSync(page)` 그대로 동작 (CONTENT_DIR 디폴트).
 
-- [ ] **Step 5: 테스트 실행 — 통과 확인**
+- [x] **Step 5: 테스트 실행 — 통과 확인**
 
-- [ ] **Step 6: 커밋 & PR**
+- [x] **Step 6: 커밋 & PR**
 
 ---
 
 ## Task 6: Issue #7 조사 & 해결 — push 트리거 루프
 
-- [ ] **Step 1: 사실 확인**
+- [x] **Step 1: 사실 확인**
 
 ```bash
 gh run list --limit 20 --json conclusion,event,createdAt,headBranch,name
@@ -590,7 +609,7 @@ gh run list --limit 20 --json conclusion,event,createdAt,headBranch,name
 
 연속된 두 run이 같은 sync 커밋으로 트리거됐는지 확인. GitHub 공식 문서상 GITHUB_TOKEN으로 push된 커밋은 워크플로 재트리거하지 않음 — 실제 그러한지 검증.
 
-- [ ] **Step 2: 시나리오별 처리**
+- [x] **Step 2: 시나리오별 처리**
 
 - 시나리오 A: 재트리거 발생 안 함 → 이슈를 "won't fix / verified non-issue" 코멘트와 함께 닫음.
 - 시나리오 B: 재트리거 발생 → commit message에 `[skip ci]` 추가:
@@ -599,7 +618,7 @@ gh run list --limit 20 --json conclusion,event,createdAt,headBranch,name
 git diff --staged --quiet || (git commit -m "Sync from Notion [skip ci]" && git push)
 ```
 
-- [ ] **Step 3: 시나리오 B일 경우만**
+- [x] **Step 3: 시나리오 B일 경우만**
 
 브랜치 `fix/skip-ci-on-sync-commit` 생성, deploy.yml 수정, PR.
 

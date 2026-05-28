@@ -2,3 +2,7 @@
 .prose :where(code):not(:where([class~="not-prose"], [class~="not-prose"] *))::after {
     content: none;
 }
+
+article .max-w-prose {
+    max-width: 56rem;
+}

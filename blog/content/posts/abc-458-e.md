@@ -6,7 +6,7 @@ categories: ["PS"]
 slug: "abc-458-e"
 math: true
 notion_id: "36a5c3d8-6808-80fb-9945-ca454fad4999"
-notion_last_edited: "2026-05-25T22:12:00.000Z"
+notion_last_edited: "2026-05-28T15:27:00.000Z"
 draft: false
 ---
 
@@ -87,7 +87,7 @@ $\displaystyle{\sum^{\min(X_1, X_2)}_{k} \sum^{\min(X_3, X_2-k+1)}_{m} \binom{X_
 - $j = m - 1$ 로 두면:  
     - $\sum_{j\ge0} \binom{X_2-k+1}{j+1} \binom{X_3-1}{j}$  
     - 여기서 $\binom{n}{r} = \binom{n}{n-r}$ 성질을 이용한다.  
-    $\sum_{j\ge0} \binom{n}{j+1} \binom{X_3-1}{j} = \sum_{j\ge0} \binom{n}{n-j-1} \binom{X_3-1}{j}$ — $n = X_2-k+1$  
+    - $n = X_2 - k + 1$ 이라 두고, $\sum_{j\ge0} \binom{n}{j+1} \binom{X_3-1}{j} = \sum_{j\ge0} \binom{n}{n-j-1} \binom{X_3-1}{j}$  
     - 반더몬드 항등식에 의해, $\binom{X_2+X_3-k}{X_2-k}$ 로 간소화할 수 있다.
 - $\min(X_3, X_2-k+1) < j \le X_2-k$ 인 $\binom{X_3 - 1}{j}$ 에 대해서는 그 값이 0이므로, 합에 포함시켜도 **결과가 바뀌지 않는다**. 따라서 **반더몬드 항등식의 표준 형태를 그대로 적용**할 수 있다.
 

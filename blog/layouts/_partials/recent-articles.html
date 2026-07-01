@@ -1,0 +1,12 @@
+{{ if .Site.Params.homepage.showRecent | default false }}
+  {{ $pages := where .Site.RegularPages "Type" "in" .Site.Params.mainSections }}
+  {{ $excluded := .Site.Params.excludeCategories | default (slice) }}
+  {{ if gt (len $excluded) 0 }}
+    {{ $excl := where $pages "Params.categories" "intersect" $excluded }}
+    {{ $pages = complement $excl $pages }}
+  {{ end }}
+  <h2 class="mt-8 text-2xl font-extrabold">{{ i18n "shortcode.recent_articles" | emojify }}</h2>
+  {{ range first (.Site.Params.homepage.recentLimit | default 5) $pages }}
+    {{ partial "article-link.html" . }}
+  {{ end }}
+{{ end }}

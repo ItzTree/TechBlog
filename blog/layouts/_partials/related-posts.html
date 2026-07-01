@@ -1,0 +1,41 @@
+{{- /*
+  related-posts.html
+
+  안드로이드·PS 글 페이지에서 동일 버티컬 관련글만 표시한다.
+  excludeCategories(기본값: ["geeknews"])에 속하는 글은 현재 페이지든 후보든
+  모두 배제된다. 카테고리 조건으로 선언적으로 동작하므로 글 수에 무관하게 스케일된다.
+
+  불변식:
+  - 현재 글이 geeknews 카테고리면 관련글 섹션 자체를 렌더하지 않는다.
+  - 관련글 목록에 geeknews 카테고리 글이 포함되지 않는다.
+  - 관련글은 현재 글과 카테고리 교집합이 있는 글만 포함한다.
+*/ -}}
+
+{{- $excluded := .Site.Params.excludeCategories | default (slice) -}}
+{{- $currentCats := .Params.categories | default (slice) -}}
+
+{{- /* 현재 글이 배제 카테고리(geeknews 등)면 섹션 자체를 렌더하지 않는다 */ -}}
+{{- $currentIsExcluded := gt (len (intersect $currentCats $excluded)) 0 -}}
+
+{{- if and (not $currentIsExcluded) (gt (len $currentCats) 0) -}}
+  {{- $allPages := .Site.RegularPages -}}
+
+  {{- /* complement 패턴: 배제 카테고리를 가진 글 먼저 수집 후 제거 */ -}}
+  {{- $excludedPages := where $allPages "Params.categories" "intersect" $excluded -}}
+  {{- $candidates := complement $excludedPages $allPages -}}
+
+  {{- /* 현재 글과 카테고리 교집합이 있는 글만 남긴다 (동일 버티컬) */ -}}
+  {{- $related := where $candidates "Params.categories" "intersect" $currentCats -}}
+
+  {{- /* 현재 글 자신은 제외 */ -}}
+  {{- $related = where $related "RelPermalink" "ne" .RelPermalink -}}
+
+  {{- if gt (len $related) 0 -}}
+    <div class="related-posts mt-8 pt-4 border-t border-dotted border-neutral-300 dark:border-neutral-600">
+      <h2 class="mb-4 text-xl font-extrabold text-neutral-900 dark:text-neutral">관련 글</h2>
+      {{- range first 5 $related -}}
+        {{- partial "article-link.html" . -}}
+      {{- end -}}
+    </div>
+  {{- end -}}
+{{- end -}}

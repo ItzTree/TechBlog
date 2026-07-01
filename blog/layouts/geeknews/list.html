@@ -1,0 +1,21 @@
+{{ define "main" }}
+  {{/* GeekNews 전용 섹션 화면 — 포폴(/posts)과 분리된 자체 "블로그 화면".
+       geeknews 글은 이 섹션에만 존재하며 mainSections에서 빠져 홈/포폴 목록엔 안 나온다. */}}
+  <header class="mb-6">
+    <h1 class="mt-0 text-4xl font-extrabold text-neutral-900 dark:text-neutral">{{ .Title }}</h1>
+    {{ with .Content }}<div class="prose dark:prose-invert mt-2">{{ . }}</div>{{ end }}
+  </header>
+  {{ $pages := .Pages }}
+  {{ if $pages }}
+    <section>
+      {{ range (.Paginate $pages).Pages }}
+        {{ partial "article-link.html" . }}
+      {{ end }}
+    </section>
+    {{ partial "pagination.html" . }}
+  {{ else }}
+    <section class="prose mt-10 dark:prose-invert">
+      <p class="border-t py-8"><em>아직 IT소식이 없습니다.</em></p>
+    </section>
+  {{ end }}
+{{ end }}

@@ -11,7 +11,17 @@ const notion = new Client({ auth: process.env.NOTION_API_KEY });
 const n2m = new NotionToMarkdown({ notionClient: notion });
 
 const CONTENT_DIR = path.join(__dirname, "..", "blog", "content", "posts");
+const GEEKNEWS_DIR = path.join(__dirname, "..", "blog", "content", "geeknews");
 const IMAGE_DIR = path.join(__dirname, "..", "blog", "static", "images");
+
+// 별도 GeekNews 섹션(/geeknews/)으로 라우팅할 카테고리 (소문자 비교, 유동적)
+const GEEKNEWS_CATEGORIES = ["geeknews"];
+
+// 글의 카테고리에 따라 저장할 콘텐츠 디렉터리를 고른다 (섹션 분리의 단일 소스)
+function contentDirFor(props) {
+  const cat = (props.category || "").toLowerCase();
+  return GEEKNEWS_CATEGORIES.includes(cat) ? GEEKNEWS_DIR : CONTENT_DIR;
+}
 
 async function getDataSourceId() {
   const db = await notion.databases.retrieve({
@@ -47,8 +57,9 @@ async function getPublishedPages() {
   });
 }
 
-function needsSync(page, contentDir = CONTENT_DIR) {
+function needsSync(page, contentDir) {
   const props = getPageProperties(page);
+  if (!contentDir) contentDir = contentDirFor(props);
   const filePath = path.join(contentDir, `${props.slug}.md`);
   if (!fs.existsSync(filePath)) return true;
   const content = fs.readFileSync(filePath, "utf-8");
@@ -82,14 +93,15 @@ function getPageProperties(page) {
   return { title, date, tags, category, slug };
 }
 
-function buildFrontMatter(props, hasMath, notionId, notionLastEdited) {
+function buildFrontMatter(props, hasMath, notionId, notionLastEdited, isGeekNews = false) {
   const lines = ["---"];
   lines.push(`title: "${props.title.replace(/"/g, '\\"')}"`);
   lines.push(`date: ${props.date}`);
-  if (props.tags.length > 0) {
+  // GeekNews는 별도 섹션(content/geeknews)으로 분리되므로 공유 태그/카테고리 taxonomy에 넣지 않는다.
+  if (!isGeekNews && props.tags.length > 0) {
     lines.push(`tags: [${props.tags.map((t) => `"${t}"`).join(", ")}]`);
   }
-  if (props.category) {
+  if (!isGeekNews && props.category) {
     lines.push(`categories: ["${props.category}"]`);
   }
   lines.push(`slug: "${props.slug}"`);
@@ -273,16 +285,22 @@ async function syncPage(page) {
   pruneOldImages(IMAGE_DIR, props.slug, imageResult.filenames);
   markdown = convertLineBreaks(markdown);
 
+  const contentDir = contentDirFor(props);
+  const isGeekNews = contentDir === GEEKNEWS_DIR;
   const math = hasMathContent(markdown);
-  const frontMatter = buildFrontMatter(props, math, page.id, page.last_edited_time);
+  const frontMatter = buildFrontMatter(props, math, page.id, page.last_edited_time, isGeekNews);
   const content = `${frontMatter}\n\n${markdown}`;
 
-  fs.mkdirSync(CONTENT_DIR, { recursive: true });
-  const filePath = path.join(CONTENT_DIR, `${props.slug}.md`);
+  fs.mkdirSync(contentDir, { recursive: true });
+  const filePath = path.join(contentDir, `${props.slug}.md`);
   fs.writeFileSync(filePath, content, "utf-8");
-  deleteOldSlugFiles(CONTENT_DIR, page.id, props.slug);
+  // 현재 섹션의 옛 슬러그 파일 정리 + 카테고리 변경으로 섹션이 바뀐 경우 다른 섹션에 남은 같은 글 제거
+  deleteOldSlugFiles(contentDir, page.id, props.slug);
+  for (const dir of [CONTENT_DIR, GEEKNEWS_DIR]) {
+    if (dir !== contentDir) deleteOldSlugFiles(dir, page.id, null);
+  }
 
-  console.log(`Synced: ${props.title} -> ${props.slug}.md`);
+  console.log(`Synced: ${props.title} -> ${path.basename(contentDir)}/${props.slug}.md`);
   return page.id;
 }
 
@@ -313,11 +331,13 @@ async function getDeletedPages() {
 
 async function deletePage(page) {
   const props = getPageProperties(page);
-  const filePath = path.join(CONTENT_DIR, `${props.slug}.md`);
-
-  if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
-    console.log(`Deleted: ${props.slug}.md`);
+  // 섹션(posts/geeknews)이 바뀌었을 수 있으니 두 섹션 모두에서 제거
+  for (const dir of [CONTENT_DIR, GEEKNEWS_DIR]) {
+    const filePath = path.join(dir, `${props.slug}.md`);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      console.log(`Deleted: ${path.basename(dir)}/${props.slug}.md`);
+    }
   }
 
   const imageFiles = fs.existsSync(IMAGE_DIR)
@@ -414,6 +434,7 @@ module.exports = {
   queryAllPages,
   processPagesIsolated,
   downloadImage,
+  contentDirFor,
 };
 
 if (require.main === module) {

@@ -1,0 +1,15 @@
+{{/* 홈 페이지 레이아웃 오버라이드
+     Congo 테마의 home/page.html을 확장 — 포트폴리오 버티컬 내비게이션을 first viewport에 추가 */}}
+<article class="prose max-w-full dark:prose-invert">
+  {{ with .Title }}
+    <header>
+      <h1>{{ . | emojify }}</h1>
+    </header>
+  {{ end }}
+  <section>{{ .Content | emojify }}</section>
+</article>
+{{/* S3: 포트폴리오 버티컬 진입 내비게이션 (android·PS) — recent-articles 앞에 배치 */}}
+{{ partial "vertical-nav.html" . }}
+<section>
+  {{ partial "recent-articles.html" . }}
+</section>

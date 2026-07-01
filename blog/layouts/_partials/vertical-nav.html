@@ -1,0 +1,52 @@
+{{/* 포트폴리오 버티컬 진입 내비게이션 — 홈 first viewport, 정사각형 타일을 한 행에 나열.
+     목록은 params.toml의 featuredVerticals(유동적)에서 생성. 하드코딩 없음.
+     스타일은 <style> 블록으로 자기완결(Congo Tailwind 컴파일에 없는 유틸 클래스 회피).
+     S3 구조 불변식: data-vertical 속성으로 테스트 검증. */}}
+<style>
+  .vertical-nav > div {
+    display: flex;
+    flex-flow: row wrap;
+    gap: 1rem;
+  }
+  .vertical-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: .35rem;
+    width: 9rem;
+    height: 9rem;
+    padding: 1rem;
+    border: 1px solid rgba(120,120,120,.35);
+    border-radius: .75rem;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color .15s;
+  }
+  .vertical-card-label {
+    font-weight: 700;
+    font-size: 1.15rem;
+    line-height: 1.2;
+  }
+  .vertical-card-subtitle {
+    font-size: .8rem;
+    opacity: .65;
+    line-height: 1.2;
+  }
+</style>
+{{ $featured := .Site.Params.featuredVerticals | default (slice) }}
+{{ with $featured }}
+<section class="vertical-nav not-prose mt-4 mb-8" aria-label="포트폴리오 버티컬">
+  <div>
+    {{ range . }}
+    <a href="{{ (printf "categories/%s/" .category) | relURL }}"
+       data-vertical="{{ .category }}"
+       class="vertical-card">
+      <span class="vertical-card-label">{{ .label }}</span>
+      {{ with .subtitle }}<span class="vertical-card-subtitle">{{ . }}</span>{{ end }}
+    </a>
+    {{ end }}
+  </div>
+</section>
+{{ end }}

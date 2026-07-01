@@ -12,3 +12,21 @@
   name = "태그"
   pageRef = "tags"
   weight = 30
+
+# 포폴 영역 → GeekNews 영역으로 가는 크로스 링크
+[[main]]
+  name = "IT소식"
+  pageRef = "/geeknews"
+  weight = 40
+
+# --- GeekNews(IT소식) 섹션 전용 상단 메뉴 (헤더가 .Section=geeknews일 때 사용) ---
+[[geeknews]]
+  name = "글 목록"
+  pageRef = "/geeknews"
+  weight = 10
+
+# GeekNews 영역 → 포폴(기술블로그)로 돌아가는 크로스 링크
+[[geeknews]]
+  name = "기술블로그"
+  pageRef = "/"
+  weight = 20

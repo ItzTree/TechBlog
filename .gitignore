@@ -7,3 +7,5 @@ node_modules/
 screenshot-*.png
 coverage/
 docs/
+.ouroboros/
+.ouroboros_eval_artifact.md

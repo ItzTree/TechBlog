@@ -13,7 +13,10 @@
     </section>
   {{ end }}
   <section class="mt-8">
+    {{- $excluded := .Site.Params.excludeCategories | default (slice) -}}
     {{ range .Data.Terms }}
+      {{/* GeekNews 배제: excludeCategories 선언적 규칙 — categories taxonomy에서 geeknews 항목 숨김 */}}
+      {{- if in $excluded (.Page.Title | lower) }}{{ continue }}{{ end -}}
       <article class="my-3">
         <h2 class="flex items-center">
           <a

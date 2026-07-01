@@ -1,0 +1,32 @@
+{{- /* GeekNews 배제 RSS: 홈/섹션 피드에서 excludeCategories 글 제거.
+       geeknews 전용 term 피드(categories/geeknews, tags/geeknews)는 자기 자신을 필터하지 않아 URL로 도달 가능(S6). */ -}}
+{{- $pctx := . -}}
+{{- if .IsHome -}}{{ $pctx = site }}{{- end -}}
+{{- $pages := where $pctx.RegularPages "Type" "in" site.Params.mainSections -}}
+{{- if not $pages -}}{{ $pages = $pctx.RegularPages -}}{{- end -}}
+{{- $excluded := site.Params.excludeCategories | default (slice) -}}
+{{- $isGeekNewsPage := in $excluded (.Title | lower) -}}
+{{- if and (gt (len $excluded) 0) (not $isGeekNewsPage) -}}
+  {{- $excl := where $pages "Params.categories" "intersect" $excluded -}}
+  {{- $pages = complement $excl $pages -}}
+{{- end -}}
+{{- $limit := site.Config.Services.RSS.Limit -}}
+{{- if ge $limit 1 -}}{{- $pages = $pages | first $limit -}}{{- end -}}
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>{{ if eq .Title site.Title }}{{ site.Title }}{{ else }}{{ with .Title }}{{ . }} on {{ end }}{{ site.Title }}{{ end }}</title>
+    <link>{{ .Permalink }}</link>
+    <description>Recent content {{ if ne .Title site.Title }}{{ with .Title }}in {{ . }} {{ end }}{{ end }}on {{ site.Title }}</description>
+    <generator>Hugo</generator>
+    <atom:link href="{{ .Permalink }}index.xml" rel="self" type="application/rss+xml" />
+    {{- range $pages }}
+    <item>
+      <title>{{ .Title }}</title>
+      <link>{{ .Permalink }}</link>
+      <pubDate>{{ .Date.Format "Mon, 02 Jan 2006 15:04:05 -0700" | safeHTML }}</pubDate>
+      <guid>{{ .Permalink }}</guid>
+      <description>{{ .Summary | html }}</description>
+    </item>
+    {{- end }}
+  </channel>
+</rss>

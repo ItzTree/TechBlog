@@ -1,4 +1,7 @@
 colorScheme = "ocean"
+
+# 홈/recent 피드에서 배제할 카테고리 목록 (GeekNews 스트림 분리)
+excludeCategories = ["geeknews"]
 defaultAppearance = "light"
 autoSwitchAppearance = true
 

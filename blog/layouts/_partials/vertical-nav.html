@@ -1,0 +1,18 @@
+{{/* 포트폴리오 버티컬 진입 내비게이션 — android·PS 각 1개, 홈 first viewport
+     S3 구조 불변식: data-vertical 속성으로 테스트 검증 */}}
+<section class="vertical-nav not-prose mt-4 mb-8" aria-label="포트폴리오 버티컬">
+  <div class="grid grid-cols-2 gap-4">
+    <a href="{{ "categories/android/" | relURL }}"
+       data-vertical="android"
+       class="vertical-card flex flex-col gap-1 rounded-lg border border-neutral-200 dark:border-neutral-600 p-4 hover:border-primary-500 dark:hover:border-primary-400 transition-colors no-underline text-neutral-900 dark:text-neutral">
+      <span class="text-base font-bold">Android</span>
+      <span class="text-sm text-neutral-500 dark:text-neutral-400">안드로이드 개발</span>
+    </a>
+    <a href="{{ "categories/ps/" | relURL }}"
+       data-vertical="ps"
+       class="vertical-card flex flex-col gap-1 rounded-lg border border-neutral-200 dark:border-neutral-600 p-4 hover:border-primary-500 dark:hover:border-primary-400 transition-colors no-underline text-neutral-900 dark:text-neutral">
+      <span class="text-base font-bold">PS</span>
+      <span class="text-sm text-neutral-500 dark:text-neutral-400">알고리즘 문제 풀이</span>
+    </a>
+  </div>
+</section>

@@ -1,0 +1,78 @@
+{{- /*
+  author-card.html
+
+  글 페이지 하단 프로필 카드.
+  - 실루엣 아바타 이미지
+  - 태그라인 텍스트
+  - GitHub @ItzTree 링크
+  - 같은 버티컬 더보기 섹션
+
+  불변식 (파생 불변식에서):
+  - geeknews 카테고리 글에서는 showProfileCard = false → 렌더하지 않는다.
+  - isPortfolio(android|PS) 글에서만 버티컬 더보기 링크를 표시한다.
+*/ -}}
+
+{{- $excluded := .Site.Params.excludeCategories | default (slice "geeknews") -}}
+{{- $currentCats := .Params.categories | default (slice) -}}
+
+{{- /* geeknews 등 배제 카테고리 글에서는 카드 자체를 렌더하지 않는다 */ -}}
+{{- $currentIsExcluded := gt (len (intersect $currentCats $excluded)) 0 -}}
+
+{{- if not $currentIsExcluded -}}
+
+  {{- /* 현재 버티컬 결정 — 대소문자 무관 비교 */ -}}
+  {{- $vertical := "" -}}
+  {{- range $currentCats -}}
+    {{- $lower := strings.ToLower . -}}
+    {{- if eq $lower "ps" -}}{{- $vertical = "ps" -}}{{- end -}}
+    {{- if eq $lower "android" -}}{{- $vertical = "android" -}}{{- end -}}
+  {{- end -}}
+
+  <div class="author-card not-prose mt-8 pt-6 border-t border-dotted border-neutral-300 dark:border-neutral-600">
+    <div class="flex items-center gap-4">
+      <img
+        src="{{ "images/avatar-silhouette.svg" | relURL }}"
+        alt="Author silhouette"
+        class="author-avatar w-16 h-16 rounded-full"
+        width="64"
+        height="64"
+      />
+      <div>
+        <p class="author-tagline text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-1">
+          알고리즘 &amp; 안드로이드 개발자
+        </p>
+        <a
+          href="https://github.com/ItzTree"
+          class="author-github text-sm text-primary-600 dark:text-primary-400 hover:underline"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          @ItzTree
+        </a>
+      </div>
+    </div>
+
+    {{- /* 같은 버티컬 더보기 섹션 — isPortfolio(android|PS) 글에서만 표시 */ -}}
+    {{- if $vertical -}}
+      {{- $verticalLabel := "" -}}
+      {{- $verticalURL := "" -}}
+      {{- if eq $vertical "android" -}}
+        {{- $verticalLabel = "Android" -}}
+        {{- $verticalURL = "categories/android/" | relURL -}}
+      {{- else if eq $vertical "ps" -}}
+        {{- $verticalLabel = "PS" -}}
+        {{- $verticalURL = "categories/ps/" | relURL -}}
+      {{- end -}}
+      <div class="author-card-more mt-4">
+        <a
+          href="{{ $verticalURL }}"
+          class="vertical-more-link text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline"
+          data-vertical="{{ $vertical }}"
+        >
+          {{ $verticalLabel }} 글 더보기 →
+        </a>
+      </div>
+    {{- end -}}
+  </div>
+
+{{- end -}}

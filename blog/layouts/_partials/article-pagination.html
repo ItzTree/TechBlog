@@ -1,0 +1,107 @@
+{{- /*
+  article-pagination.html (vertical-aware override)
+
+  버티컬 필터링: portfolio 글(android/PS)에서 이전/다음 포인터가
+  동일 버티컬(카테고리) 내에서만 순회한다.
+
+  불변식:
+  - 현재 글이 excludeCategories(기본값: ["geeknews"])에 속하면 pagination 자체를 렌더하지 않는다.
+  - 현재 글이 portfolio 버티컬이면 prev/next 후보를 같은 카테고리 글로만 제한한다.
+  - geeknews 글은 어떤 prev/next 링크에도 절대 나타나지 않는다.
+
+  카테고리 조건으로 선언적으로 동작하므로 글 수에 무관하게 스케일된다.
+  Congo 원본 HTML 구조와 Tailwind 클래스를 그대로 유지한다.
+*/ -}}
+
+{{ if .Params.showPagination | default (.Site.Params.article.showPagination | default true) }}
+  {{- $excluded := .Site.Params.excludeCategories | default (slice) -}}
+  {{- $currentCats := .Params.categories | default (slice) -}}
+  {{- $currentIsExcluded := gt (len (intersect $currentCats $excluded)) 0 -}}
+
+  {{- if not $currentIsExcluded -}}
+    {{- $allPages := .Site.RegularPages -}}
+
+    {{- /* complement 패턴: 배제 카테고리 글 제거 */ -}}
+    {{- $excludedPages := where $allPages "Params.categories" "intersect" $excluded -}}
+    {{- $sameVertical := complement $excludedPages $allPages -}}
+
+    {{- /* 현재 글과 카테고리 교집합이 있는 글만 유지 (동일 버티컬) */ -}}
+    {{- $sameVertical = where $sameVertical "Params.categories" "intersect" $currentCats -}}
+
+    {{- /* 현재 글의 인덱스 탐색 (RegularPages 기준 날짜 내림차순 정렬 유지) */ -}}
+    {{- $currentIdx := -1 -}}
+    {{- range $i, $p := $sameVertical -}}
+      {{- if eq $p.RelPermalink $.RelPermalink -}}
+        {{- $currentIdx = $i -}}
+      {{- end -}}
+    {{- end -}}
+
+    {{- /* prev = 목록 앞쪽(= 더 새로운 글), next = 목록 뒤쪽(= 더 오래된 글) */ -}}
+    {{- $prev := false -}}
+    {{- $next := false -}}
+    {{- if gt $currentIdx 0 -}}
+      {{- $prev = index $sameVertical (sub $currentIdx 1) -}}
+    {{- end -}}
+    {{- if and (ge $currentIdx 0) (lt $currentIdx (sub (len $sameVertical) 1)) -}}
+      {{- $next = index $sameVertical (add $currentIdx 1) -}}
+    {{- end -}}
+
+    {{- if .Params.invertPagination | default (.Site.Params.article.invertPagination | default false) -}}
+      {{- $tmp := $prev -}}
+      {{- $prev = $next -}}
+      {{- $next = $tmp -}}
+    {{- end -}}
+
+    {{ if or $prev $next }}
+      <div class="article-pagination pt-8">
+        <hr class="border-dotted border-neutral-300 dark:border-neutral-600" />
+        <div class="flex justify-between pt-3">
+          <span>
+            {{ if $prev }}
+              <a class="group flex" href="{{ $prev.Permalink }}">
+                <span
+                  class="me-2 text-neutral-700 transition-transform group-hover:-translate-x-[2px] group-hover:text-primary-600 dark:text-neutral dark:group-hover:text-primary-400"
+                  ><span class="ltr:inline rtl:hidden">&larr;</span
+                  ><span class="ltr:hidden rtl:inline">&rarr;</span></span
+                >
+                <span class="flex flex-col">
+                  <span
+                    class="mt-[0.1rem] leading-6 group-hover:underline group-hover:decoration-primary-500"
+                    >{{ $prev.Title | emojify }}</span
+                  >
+                  <span class="mt-[0.1rem] text-xs text-neutral-500 dark:text-neutral-400">
+                    {{ if .Params.showDate | default (.Site.Params.article.showDate | default true) }}
+                      {{ partial "meta/date.html" $prev.Date }}
+                    {{ end }}
+                  </span>
+                </span>
+              </a>
+            {{ end }}
+          </span>
+          <span>
+            {{ if $next }}
+              <a class="group flex text-right" href="{{ $next.Permalink }}">
+                <span class="flex flex-col">
+                  <span
+                    class="mt-[0.1rem] leading-6 group-hover:underline group-hover:decoration-primary-500"
+                    >{{ $next.Title | emojify }}</span
+                  >
+                  <span class="mt-[0.1rem] text-xs text-neutral-500 dark:text-neutral-400">
+                    {{ if .Params.showDate | default (.Site.Params.article.showDate | default true) }}
+                      {{ partial "meta/date.html" $next.Date }}
+                    {{ end }}
+                  </span>
+                </span>
+                <span
+                  class="ms-2 text-neutral-700 transition-transform group-hover:-translate-x-[-2px] group-hover:text-primary-600 dark:text-neutral dark:group-hover:text-primary-400"
+                  ><span class="ltr:inline rtl:hidden">&rarr;</span
+                  ><span class="ltr:hidden rtl:inline">&larr;</span></span
+                >
+              </a>
+            {{ end }}
+          </span>
+        </div>
+      </div>
+    {{ end }}
+  {{- end -}}
+{{ end }}

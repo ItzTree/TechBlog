@@ -557,3 +557,95 @@ describe("needsSync via notion_last_edited", () => {
     expect(needsSync(makePage("x", "2026-05-03T00:00:00.000Z"), dir)).toBe(true);
   });
 });
+
+describe("contentDirFor — category routing", () => {
+  const { contentDirFor } = sync;
+
+  test("geeknews category routes to a path containing 'geeknews'", () => {
+    const dir = contentDirFor({ category: "geeknews" });
+    expect(dir).toMatch(/geeknews/);
+    expect(dir).not.toMatch(/posts/);
+  });
+
+  test("GEEKNEWS (uppercase) is also routed to geeknews dir (case-insensitive)", () => {
+    const dir = contentDirFor({ category: "GEEKNEWS" });
+    expect(dir).toMatch(/geeknews/);
+  });
+
+  test("android category routes to posts (CONTENT_DIR)", () => {
+    const dir = contentDirFor({ category: "android" });
+    expect(dir).toMatch(/posts/);
+    expect(dir).not.toMatch(/geeknews/);
+  });
+
+  test("ps category routes to posts (CONTENT_DIR)", () => {
+    const dir = contentDirFor({ category: "ps" });
+    expect(dir).toMatch(/posts/);
+  });
+
+  test("empty category routes to posts (CONTENT_DIR)", () => {
+    const dir = contentDirFor({ category: "" });
+    expect(dir).toMatch(/posts/);
+  });
+});
+
+describe("syncPage section-move cleanup — cross-dir deleteOldSlugFiles", () => {
+  const { deleteOldSlugFiles } = sync;
+  let postsDir, geekNewsDir;
+
+  beforeEach(() => {
+    postsDir = fs.mkdtempSync(path.join(os.tmpdir(), "posts-"));
+    geekNewsDir = fs.mkdtempSync(path.join(os.tmpdir(), "geeknews-"));
+  });
+
+  afterEach(() => {
+    fs.rmSync(postsDir, { recursive: true, force: true });
+    fs.rmSync(geekNewsDir, { recursive: true, force: true });
+  });
+
+  test("portfolio→geeknews: old posts file deleted when same notion_id moves to geeknews", () => {
+    // 이전에 posts에 있던 파일
+    const oldPostsFile = path.join(postsDir, "my-article.md");
+    fs.writeFileSync(oldPostsFile, '---\nnotion_id: "abc-456"\nslug: "my-article"\n---\n');
+
+    // syncPage가 geeknews에 새 파일 작성 후 반대 섹션(posts) 정리
+    const newGeekFile = path.join(geekNewsDir, "my-article.md");
+    fs.writeFileSync(newGeekFile, '---\nnotion_id: "abc-456"\nslug: "my-article"\n---\n');
+
+    // syncPage 내부에서 호출하는 패턴: deleteOldSlugFiles(oppositeDir, page.id, null)
+    deleteOldSlugFiles(postsDir, "abc-456", null);
+
+    expect(fs.existsSync(oldPostsFile)).toBe(false);
+    expect(fs.existsSync(newGeekFile)).toBe(true);
+  });
+
+  test("geeknews→portfolio: old geeknews file deleted when same notion_id moves to posts", () => {
+    // 이전에 geeknews에 있던 파일
+    const oldGeekFile = path.join(geekNewsDir, "tech-news.md");
+    fs.writeFileSync(oldGeekFile, '---\nnotion_id: "xyz-789"\nslug: "tech-news"\n---\n');
+
+    // syncPage가 posts에 새 파일 작성 후 반대 섹션(geeknews) 정리
+    const newPostsFile = path.join(postsDir, "tech-news.md");
+    fs.writeFileSync(newPostsFile, '---\nnotion_id: "xyz-789"\nslug: "tech-news"\n---\n');
+
+    // syncPage 내부에서 호출하는 패턴: deleteOldSlugFiles(oppositeDir, page.id, null)
+    deleteOldSlugFiles(geekNewsDir, "xyz-789", null);
+
+    expect(fs.existsSync(oldGeekFile)).toBe(false);
+    expect(fs.existsSync(newPostsFile)).toBe(true);
+  });
+
+  test("both dirs contain same notion_id: cleanup leaves only the target-section file", () => {
+    // 두 섹션 모두에 같은 notion_id 파일이 존재하는 상태 (비정상 이중 존재)
+    const postsFile = path.join(postsDir, "duplicate.md");
+    const geekFile = path.join(geekNewsDir, "duplicate.md");
+    fs.writeFileSync(postsFile, '---\nnotion_id: "dup-111"\nslug: "duplicate"\n---\n');
+    fs.writeFileSync(geekFile, '---\nnotion_id: "dup-111"\nslug: "duplicate"\n---\n');
+
+    // 현재 섹션이 geeknews이므로 반대(posts) 정리
+    deleteOldSlugFiles(postsDir, "dup-111", null);
+
+    expect(fs.existsSync(postsFile)).toBe(false);
+    expect(fs.existsSync(geekFile)).toBe(true);
+  });
+});

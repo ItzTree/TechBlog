@@ -1,31 +1,26 @@
 {{- /*
-  author-card.html
+  author-card.html — 글 페이지 하단 프로필 카드.
+  - 실루엣 아바타 · 태그라인 · GitHub @ItzTree 링크 · 같은 버티컬 더보기
 
-  글 페이지 하단 프로필 카드.
-  - 실루엣 아바타 이미지
-  - 태그라인 텍스트
-  - GitHub @ItzTree 링크
-  - 같은 버티컬 더보기 섹션
-
-  불변식 (파생 불변식에서):
-  - geeknews 카테고리 글에서는 showProfileCard = false → 렌더하지 않는다.
-  - isPortfolio(android|PS) 글에서만 버티컬 더보기 링크를 표시한다.
+  불변식(파생):
+  - 배제 카테고리(excludeCategories, 예: geeknews) 글에서는 렌더하지 않는다.
+  - 그 외(포트폴리오) 글에서만 표시 — 카테고리 하드코딩 없이 config 기반(유동적).
 */ -}}
 
 {{- $excluded := .Site.Params.excludeCategories | default (slice "geeknews") -}}
 {{- $currentCats := .Params.categories | default (slice) -}}
-
-{{- /* geeknews 등 배제 카테고리 글에서는 카드 자체를 렌더하지 않는다 */ -}}
 {{- $currentIsExcluded := gt (len (intersect $currentCats $excluded)) 0 -}}
+{{- /* geeknews는 별도 섹션 — 프로필 카드 미표시 */ -}}
+{{- $inGeekNewsSection := eq .Page.Section "geeknews" -}}
 
-{{- if not $currentIsExcluded -}}
+{{- if and (not $currentIsExcluded) (not $inGeekNewsSection) -}}
 
-  {{- /* 현재 버티컬 결정 — 대소문자 무관 비교 */ -}}
+  {{- /* 현재 글의 버티컬 = 배제 카테고리가 아닌 첫 카테고리 (하드코딩 없음) */ -}}
   {{- $vertical := "" -}}
   {{- range $currentCats -}}
-    {{- $lower := strings.ToLower . -}}
-    {{- if eq $lower "ps" -}}{{- $vertical = "ps" -}}{{- end -}}
-    {{- if eq $lower "android" -}}{{- $vertical = "android" -}}{{- end -}}
+    {{- if and (eq $vertical "") (not (in $excluded (strings.ToLower .))) -}}
+      {{- $vertical = strings.ToLower . -}}
+    {{- end -}}
   {{- end -}}
 
   <div class="author-card not-prose mt-8 pt-6 border-t border-dotted border-neutral-300 dark:border-neutral-600">
@@ -39,7 +34,7 @@
       />
       <div>
         <p class="author-tagline text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-1">
-          알고리즘 &amp; 안드로이드 개발자
+          아는 게 힘이다. 근데 아직은 힘이 없다.
         </p>
         <a
           href="https://github.com/ItzTree"
@@ -52,24 +47,19 @@
       </div>
     </div>
 
-    {{- /* 같은 버티컬 더보기 섹션 — isPortfolio(android|PS) 글에서만 표시 */ -}}
+    {{- /* 같은 버티컬 더보기 — 라벨은 featuredVerticals에서 조회, 없으면 카테고리명 */ -}}
     {{- if $vertical -}}
-      {{- $verticalLabel := "" -}}
-      {{- $verticalURL := "" -}}
-      {{- if eq $vertical "android" -}}
-        {{- $verticalLabel = "Android" -}}
-        {{- $verticalURL = "categories/android/" | relURL -}}
-      {{- else if eq $vertical "ps" -}}
-        {{- $verticalLabel = "PS" -}}
-        {{- $verticalURL = "categories/ps/" | relURL -}}
+      {{- $label := $vertical -}}
+      {{- range .Site.Params.featuredVerticals -}}
+        {{- if eq (strings.ToLower .category) $vertical -}}{{- $label = .label -}}{{- end -}}
       {{- end -}}
       <div class="author-card-more mt-4">
         <a
-          href="{{ $verticalURL }}"
+          href="{{ (printf "categories/%s/" $vertical) | relURL }}"
           class="vertical-more-link text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline"
           data-vertical="{{ $vertical }}"
         >
-          {{ $verticalLabel }} 글 더보기 →
+          {{ $label }} 글 더보기 →
         </a>
       </div>
     {{- end -}}

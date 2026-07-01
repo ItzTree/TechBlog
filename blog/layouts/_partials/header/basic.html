@@ -4,11 +4,13 @@
     <div class="flex flex-row items-center">
       {{ partial "logo.html" . }}
     </div>
-    {{/* Main menu */}}
-    {{ if or .Site.Menus.main (.Site.Params.enableSearch | default false) }}
+    {{/* Main menu — geeknews 섹션에서는 geeknews 전용 메뉴로 상위 탭 전환 */}}
+    {{- $menu := .Site.Menus.main -}}
+    {{- if eq .Section "geeknews" -}}{{- with .Site.Menus.geeknews -}}{{- $menu = . -}}{{- end -}}{{- end -}}
+    {{ if or $menu (.Site.Params.enableSearch | default false) }}
       <ul class="flex list-none flex-col text-end sm:flex-row">
-        {{ if .Site.Menus.main }}
-          {{ range .Site.Menus.main }}
+        {{ if $menu }}
+          {{ range $menu }}
             {{/* GeekNews 배제: excludeCategories 선언적 규칙 — vertical 파라미터로 제어 */}}
             {{- $menuExcluded := $.Site.Params.excludeCategories | default (slice) -}}
             {{- if in $menuExcluded (.Params.vertical | default "") -}}{{ continue }}{{- end -}}

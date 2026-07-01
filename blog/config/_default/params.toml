@@ -1,7 +1,11 @@
 colorScheme = "ocean"
 
-# 홈/recent 피드에서 배제할 카테고리 목록 (GeekNews 스트림 분리)
+# 홈/recent·RSS가 다룰 섹션 (geeknews 섹션은 여기 없으므로 자동 제외)
+mainSections = ["posts"]
+# 배제 카테고리 (섹션 분리 후엔 방어용 — geeknews 글은 이제 카테고리 자체가 없음, 유동적)
 excludeCategories = ["geeknews"]
+# 홈 first viewport에 정사각형 타일로 띄울 포트폴리오 버티컬 (유동적 — 카테고리 늘면 여기만 수정)
+featuredVerticals = [ { category = "ps", label = "PS", subtitle = "알고리즘 문제 풀이" }, { category = "android", label = "Android", subtitle = "안드로이드 개발" } ]
 defaultAppearance = "light"
 autoSwitchAppearance = true
 
